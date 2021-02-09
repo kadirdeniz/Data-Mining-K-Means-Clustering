@@ -1,0 +1,103 @@
+test1_data <- read.table("test2_data.txt")#Read Data
+test1_data <- as.matrix(test1_data)#define test1_data as matrix
+
+cluster <- 3#number of domains/clusters
+
+c_initial <- c(0,1,2)#Categories for dataset 0,1,2
+
+centroid <- test1_data[1:cluster,]#Three centorids positions are first three point in df dataframe
+cent_DF <- data.frame(c = c_initial, centroid)#I added category column as c at first column of centroids and ı put it in cent_DF as dataframe
+
+#These centroids will be our categoric data we will define number according to these centorids.
+
+d <- matrix(0, nrow = nrow(test1_data), ncol = cluster)
+
+c <- matrix(0, nrow = nrow(test1_data), ncol = 1)#creating 0 vector for containing cluster number
+
+updCentroid <- matrix(0, nrow = nrow(centroid), ncol = ncol(test1_data))#creating 0 matrix for temporary variable
+
+#stopping criteria for converged centroids
+status <- 10
+
+
+iter <- 0#Number of iterations it will increase now ı defined 0
+
+df <- data.frame(test1_data)#test1_data are in df dataframe now
+
+with(df,plot(V1,V2,col=factor(c),xlim=c(-15,15),ylim=c(-15,15),pch=16,xlab="X", ylab="Y" ))#Plot all data
+par(new=T)#Thats because plot two different data in one graph
+with(cent_DF,plot(V1,V2,col=factor(c),xlim=c(-15,15),ylim=c(-15,15),pch=17,cex=2,xlab="X", ylab="Y", ))#Positions of Centroids with different colors
+
+while (status != 0)#until status 0
+{
+  iter <- iter + 1#increase iteration
+  
+  
+  #calculate distance each data to each centroid
+  for (j in 1:cluster)#For All Clusters
+  {
+    for (i in 1:nrow(test1_data))#For All Data
+    {
+      d[i,j] = sqrt(sum((test1_data[i,1:ncol(test1_data)] - centroid[j,1:ncol(centroid)])^2))#Euclidian Distance
+    }
+  }
+  
+  #in above for loops we calculated all instances distances according to centroids 
+  
+  #Here we are defining categories of data according to distances from centorids
+  for(i in 1:nrow(d))
+  {
+    c[i] <- (which(d[i,] == min(d[i,]), arr.ind = T)) - 1
+  }
+  
+  #plot results
+  
+  df <- data.frame(c,test1_data)#put updated datas in df 
+  cent_DF <- data.frame(c = c_initial, centroid)#Update cent_DF with new datas
+
+  with(df,plot(V1,V2,col=factor(c),xlim=c(-15,15),ylim=c(-15,15),pch=16 ))#plot all data according to their categories with some features like xlim ylim
+  par(new=T)#thats for plot two different data in one graph
+  with(cent_DF,plot(V1,V2,col=factor(c),xlim=c(-15,15),ylim=c(-15,15),pch=17,cex=2 ))#plot centroids according to colors,so we can see distances and categories of data
+  Sys.sleep(0.1)#Compiler cant plot iteratively so i used sys.sleep to sleep compiler 0.1 second
+  
+  #calculate the new centroid based on new clustered data
+  compare <- cbind(test1_data, c)
+  
+  for (i in 1:cluster)
+  {
+    x <- subset(compare[,1:2], compare[,3] == i-1)
+    
+    for(j in 1:ncol(test1_data))
+    {
+      updCentroid[i,j] <- mean(x[,j])
+    }
+  }
+  
+  #update the current centroid
+  for (i in 1:cluster)
+  {
+    for (j in 1:ncol(centroid))
+    {
+      if (updCentroid[i,j] != centroid[i,j])
+      {
+        status <- 1
+        centroid[i,j] <- updCentroid[i,j]
+      }
+      else status <- 0
+    }
+  }
+}
+
+#There is a popular method known as elbow method which is used to determine 
+#the optimal value of K to perform the K-Means Clustering Algorithm.
+# The basic idea behind this method is that it plots the various values of cost with changing k.
+# As the value of K increases, there will be fewer elements in the cluster.
+# So average distortion will decrease. The lesser number of elements means closer to the centroid.
+# So, the point where this distortion declines the most is the elbow point.
+
+#I Used Elbow Method to find optimum number of k for k means clustering
+
+df_for_k <- scale(df)
+wss <- (nrow(df_for_k)-1)*sum(apply(df_for_k,2,var))#Calculate Sum Of Square
+for (i in 2:15) wss[i] <- sum(kmeans(df_for_k,centers=i)$V1)
+plot(1:15, wss, type="l", xlab="Number of Clusters",ylab="Within groups sum of squares")
